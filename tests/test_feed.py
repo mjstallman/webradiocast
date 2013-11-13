@@ -1,9 +1,16 @@
+# -*- coding:utf8 -*-
 import unittest
-
+import os
+from ConfigParser import SafeConfigParser, DEFAULTSECT
 from webradiocast.feed import *
 
 from xml.dom import Node
 from xml.dom.minidom import Document
+
+from webradiocast.errors import PlaylistNotFound
+
+
+MY_DIR = os.path.dirname(__file__)
 
 
 class InitChannelTests(unittest.TestCase):
@@ -38,3 +45,75 @@ class UpdateChannelTests(unittest.TestCase):
         after_childrens = len(self.channel.childNodes)
         self.assertEqual(after_childrens, before_childrens)
         self.assertEqual(self.channel.firstChild.firstChild.nodeValue, 'test2')
+
+
+class FeedBuilderTests(unittest.TestCase):
+    def setUp(self):
+        self.builder = FeedBuilder()
+        self.playlist = ConfigParser.SafeConfigParser()
+        self.playlist.read(MY_DIR+'/testdata/playlist/simple.ini')
+
+    def test_it(self):
+        self.assertTrue(hasattr(self.builder, 'document'))
+        self.assertIsInstance(self.builder.document, Document)
+        self.assertTrue(hasattr(self.builder, '_FeedBuilder__document'))
+        self.assertTrue(hasattr(self.builder, '_FeedBuilder__channel'))
+
+    def test_update_info(self):
+        self.builder.update_info({})
+        self.assertIn('<channel/>', self.builder.document.toxml())
+        self.builder.update_info({'title':'test'})
+        self.assertNotIn('<channel/>', self.builder.document.toxml())
+        self.assertIn('<title>test</title>', self.builder.document.toxml())
+
+    def test_find_media(self):
+        self.builder.update_info(dict(self.playlist.items('media_name')))
+        medias = self.builder.find_media()
+        self.assertEqual(medias, 0)
+        medias = self.builder.find_media(pathname=MY_DIR+'/testdata/media/*.mp3')
+        self.assertEqual(medias, 4)
+
+    '''
+    def test_set_config(self):
+        section_ = FeedBuilder.SETTING_SECTION
+        config = SafeConfigParser()
+        config.add_section(section_)
+        config.set(section_, 'output_dir', '15')
+    '''
+
+
+class FeedManagerTests(unittest.TestCase):
+    def setUp(self):
+        self.manager = FeedManager()
+
+    def test_const(self):
+        self.assertEqual(FeedManager.SETTING_SECTION, 'build_xml')
+
+    def test_playlist(self):
+        self.assertRaises(
+            PlaylistNotFound,
+            self.manager.read_playlist,
+            ('not_found')
+        )
+        try:
+            self.manager.read_playlist(MY_DIR+'/testdata/playlist/simple.ini')
+        except PlaylistNotFound:
+            self.fail('raised error.')
+        self.assertTrue(hasattr(self.manager, '_FeedManager__playlist'))
+
+    def test_it(self):
+        self.manager.read_playlist(MY_DIR+'/testdata/playlist/simple.ini')
+        self.assertTrue(self.manager.has_media('media_name'))
+
+    def test_gnerate_builder(self):
+        self.manager.read_playlist(MY_DIR+'/testdata/playlist/simple.ini')
+        builder = self.manager.get_builder('media_name')
+        self.assertIsInstance(builder, FeedBuilder)
+        self.assertIn('<title>test_media_title</title>', builder.document.toxml())
+        
+    def test_generate_failed_bulder(self):
+        self.assertRaises(
+            PlaylistException,
+            self.manager.get_builder,
+            ('not_found')
+        )
