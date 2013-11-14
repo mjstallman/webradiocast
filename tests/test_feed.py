@@ -58,6 +58,8 @@ class FeedBuilderTests(unittest.TestCase):
         self.assertIsInstance(self.builder.document, Document)
         self.assertTrue(hasattr(self.builder, '_FeedBuilder__document'))
         self.assertTrue(hasattr(self.builder, '_FeedBuilder__channel'))
+        self.assertTrue(hasattr(self.builder, 'settings'))
+        builder = FeedBuilder(dict(self.playlist.items('media_name')))
 
     def test_update_info(self):
         self.builder.update_info({})
@@ -66,12 +68,30 @@ class FeedBuilderTests(unittest.TestCase):
         self.assertNotIn('<channel/>', self.builder.document.toxml())
         self.assertIn('<title>test</title>', self.builder.document.toxml())
 
-    def test_find_media(self):
-        self.builder.update_info(dict(self.playlist.items('media_name')))
-        medias = self.builder.find_media()
-        self.assertEqual(medias, 0)
+    def test_find_media__direct_pathname(self):
         medias = self.builder.find_media(pathname=MY_DIR+'/testdata/media/*.mp3')
-        self.assertEqual(medias, 4)
+        self.assertEqual(len(medias), 4)
+
+    def test_find_media__no_media_dir(self):
+        builder = FeedBuilder(dict(self.playlist.items('media_name')))
+        with self.assertRaises(PlaylistException):
+            medias = builder.find_media()
+
+    def test_find_media(self):
+        builder = FeedBuilder(dict(self.playlist.items('media_name_valid')))
+        try:
+            medias = builder.find_media()
+        except PlaylistException:
+            self.fail('catch PlaylistException')
+        self.assertEqual(len(medias), 4)
+
+    def test_find_media(self):
+        builder = FeedBuilder(dict(self.playlist.items('media_name_valid')))
+        try:
+            builder.make_feed()
+        except PlaylistException:
+            self.fail('catch PlaylistException')
+        self.assertEqual(len(builder.document.getElementsByTagName('item')), 4)
 
     '''
     def test_set_config(self):
