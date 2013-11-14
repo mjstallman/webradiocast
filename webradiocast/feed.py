@@ -34,8 +34,9 @@ def update_channel(channel_node, children_dict, overwrite=False):
 class FeedBuilder(object):
     """フィード組み立て用クラス
     """
-    def __init__(self):
+    def __init__(self, settings={}):
         self.__document, self.__channel = init_channel()
+        self.settings = settings
 
     @property
     def document(self):
@@ -46,8 +47,16 @@ class FeedBuilder(object):
 
     def find_media(self, pathname=None):
         if pathname is not None:
-            return len(glob.glob(pathname))
-        return 0
+            return glob.glob(pathname)
+        if 'media_dir' not in self.settings:
+            raise PlaylistException('setting "media_dir" is not found.')
+        return glob.glob(os.path.abspath(self.settings['media_dir'])+'/*')
+
+    def make_feed(self):
+        for media in self.find_media():
+            item_ = self.__document.createElement('item')
+            self.__channel.appendChild(item_)
+            
 
 class FeedManager(object):
     """
@@ -72,6 +81,6 @@ class FeedManager(object):
     def get_builder(self, media_name):
         if not self.has_media(media_name):
             raise PlaylistException()
-        builder = FeedBuilder()
-        builder.update_info(dict(self.__playlist.items(media_name)))
+        builder = FeedBuilder(dict(self.__playlist.items(media_name)))
+        builder.update_info(builder.settings)
         return builder
