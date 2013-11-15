@@ -63,10 +63,15 @@ class FeedBuilderTests(unittest.TestCase):
 
     def test_update_info(self):
         self.builder.update_info({})
-        self.assertIn('<channel/>', self.builder.document.toxml())
+        #self.assertIn('<channel/>', self.builder.document.toxml())
         self.builder.update_info({'title':'test'})
         self.assertNotIn('<channel/>', self.builder.document.toxml())
         self.assertIn('<title>test</title>', self.builder.document.toxml())
+        self.assertIn('<lastBuildDate>', self.builder.document.toxml())
+        self.assertIn('</lastBuildDate>', self.builder.document.toxml())
+        self.assertIn('<language>', self.builder.document.toxml())
+        self.assertIn('</language>', self.builder.document.toxml())
+
 
     def test_find_media__direct_pathname(self):
         medias = self.builder.find_media(pathname=MY_DIR+'/testdata/media/*.mp3')

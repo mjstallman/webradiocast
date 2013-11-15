@@ -1,6 +1,7 @@
 # -*- coding:utf8 -*-
 import os
 import glob
+from datetime import datetime
 import ConfigParser
 from xml.dom.minidom import Node, getDOMImplementation
 
@@ -44,6 +45,7 @@ class FeedBuilder(object):
 
     def update_info(self, info):
         update_channel(self.__channel, info, True)
+        update_channel(self.__channel, {'language': 'ja-jp', 'lastBuildDate': datetime.now().ctime()}, True)
 
     def find_media(self, pathname=None):
         if pathname is not None:
