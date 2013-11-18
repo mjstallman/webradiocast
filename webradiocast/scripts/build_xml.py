@@ -31,5 +31,6 @@ def main(argv=sys.argv):
         exit(1)
 
     builder = manager_.get_builder(args.media)
+    builder.make_feed()
     print(builder.document.toprettyxml('  '))
     exit(0)

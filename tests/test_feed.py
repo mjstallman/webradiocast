@@ -5,7 +5,7 @@ from ConfigParser import SafeConfigParser, DEFAULTSECT
 from webradiocast.feed import *
 
 from xml.dom import Node
-from xml.dom.minidom import Document
+from xml.dom.minidom import Document, Element
 
 from webradiocast.errors import PlaylistNotFound
 
@@ -88,7 +88,7 @@ class FeedBuilderTests(unittest.TestCase):
             self.fail('catch PlaylistException')
         self.assertEqual(len(medias), 4)
 
-    def test_find_media(self):
+    def test_make_feed(self):
         builder = FeedBuilder(dict(self.playlist.items('media_name_valid')))
         try:
             builder.make_feed()
@@ -96,13 +96,11 @@ class FeedBuilderTests(unittest.TestCase):
             self.fail('catch PlaylistException')
         self.assertEqual(len(builder.document.getElementsByTagName('item')), 4)
 
-    '''
-    def test_set_config(self):
-        section_ = FeedBuilder.SETTING_SECTION
-        config = SafeConfigParser()
-        config.add_section(section_)
-        config.set(section_, 'output_dir', '15')
-    '''
+    def test_make_item(self):
+        builder = FeedBuilder(dict(self.playlist.items('media_name_valid_make_item')))
+        media_target = builder.find_media()[0]
+        item = builder.make_item(media_target)
+        self.assertIsInstance(item, Element)
 
 
 class FeedManagerTests(unittest.TestCase):

@@ -1,6 +1,7 @@
 # -*- coding:utf8 -*-
 import os
 import glob
+from stat import ST_SIZE
 from datetime import datetime
 import ConfigParser
 from xml.dom.minidom import Node, getDOMImplementation
@@ -35,6 +36,8 @@ def update_channel(channel_node, children_dict, overwrite=False):
 class FeedBuilder(object):
     """フィード組み立て用クラス
     """
+    DATE_FORMAT = '%a, %d %b %Y %H:%M:%S'
+    
     def __init__(self, settings={}):
         self.__document, self.__channel = init_channel()
         self.settings = settings
@@ -45,20 +48,43 @@ class FeedBuilder(object):
 
     def update_info(self, info):
         update_channel(self.__channel, info, True)
-        update_channel(self.__channel, {'language': 'ja-jp', 'lastBuildDate': datetime.now().ctime()}, True)
+        update_channel(self.__channel, {'language': 'ja-jp', 'lastBuildDate': datetime.now().strftime(self.DATE_FORMAT)}, True)
 
     def find_media(self, pathname=None):
         if pathname is not None:
             return glob.glob(pathname)
         if 'media_dir' not in self.settings:
             raise PlaylistException('setting "media_dir" is not found.')
-        return glob.glob(os.path.abspath(self.settings['media_dir'])+'/*')
+        return glob.glob(os.path.abspath(self.settings['media_dir'])+'/*.mp3')
 
     def make_feed(self):
         for media in self.find_media():
-            item_ = self.__document.createElement('item')
-            self.__channel.appendChild(item_)
-            
+            try:
+                item_ = self.make_item(media)
+                self.__channel.appendChild(item_)
+            except ValueError as err:
+                if not err.message.startswith('time data'):
+                    raise err
+
+    def make_item(self, media_path):
+        item = self.__document.createElement('item')
+        filename = os.path.basename(media_path)
+        file_date = datetime.strptime(filename.split('.')[0], '%Y%m%d')
+        elements = dict()
+        elements['pubDate'] = file_date.strftime(self.DATE_FORMAT)
+        elements['title'] = file_date.strftime('%Y年%m月%d日配信分')
+        elements['description'] = file_date.strftime(self.settings['title']+'の%Y年%m月%d日配信分です')
+        for tag, text in elements.items():
+            node_ = self.__document.createElement(tag)
+            node_.appendChild(self.__document.createTextNode(text))
+            item.appendChild(node_)
+        node_ = self.__document.createElement('enclosure')
+        node_.setAttribute('url', self.settings['media_url']+'/'+filename)
+        node_.setAttribute('type', 'audio/mpeg')
+        node_.setAttribute('length', str(os.stat(media_path)[ST_SIZE]))
+        item.appendChild(node_)
+        
+        return item
 
 class FeedManager(object):
     """
