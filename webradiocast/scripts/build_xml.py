@@ -2,7 +2,10 @@
 import sys
 import os
 import argparse
-import ConfigParser
+try:
+    import configparser as ConfigParser
+except:
+    import ConfigParser
 
 from webradiocast.feed import FeedManager
 

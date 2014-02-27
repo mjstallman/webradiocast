@@ -3,7 +3,11 @@ import os
 import glob
 from stat import ST_SIZE
 from datetime import datetime
-import ConfigParser
+try:
+    import configparser as ConfigParser
+except:
+    import ConfigParser
+
 from xml.dom.minidom import Node, getDOMImplementation
 
 from .errors import PlaylistNotFound, PlaylistException
@@ -63,7 +67,7 @@ class FeedBuilder(object):
                 item_ = self.make_item(media)
                 self.__channel.appendChild(item_)
             except ValueError as err:
-                if not err.message.startswith('time data'):
+                if not err.__repr__().startswith('ValueError("time data'):
                     raise err
 
     def make_item(self, media_path):
