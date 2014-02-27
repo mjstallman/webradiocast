@@ -35,3 +35,6 @@ nosetests.xml
 .project
 .pydevproject
 .cache
+mimms-3.2.1
+out
+virtualenv
